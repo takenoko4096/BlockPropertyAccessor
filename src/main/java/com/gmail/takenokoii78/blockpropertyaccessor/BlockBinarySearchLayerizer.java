@@ -95,8 +95,8 @@ public class BlockBinarySearchLayerizer {
                 for (final Property<?> property : properties) {
                     property.getAllValues().forEach(value -> {
                         finalLines.add(String.format(
-                            "execute if block ~ ~ ~ #%s:%s[%s=%s] run data modify storage %s: %s set value %s",
-                            BlockPropertyAccessor.NAMESPACE,
+                            "execute if block ~ ~ ~ #%s[%s=%s] run data modify storage %s: %s.%s set value %s",
+                            key,
                             property.getName(),
                             value,
                             BlockPropertyAccessor.NAMESPACE,
