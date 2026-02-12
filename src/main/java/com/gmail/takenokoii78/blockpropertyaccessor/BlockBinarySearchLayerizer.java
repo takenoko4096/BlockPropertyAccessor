@@ -189,7 +189,10 @@ public class BlockBinarySearchLayerizer {
         object.set("replace", false);
         final JSONArray array = new JSONArray();
         for (final BlockType value : values) {
-            array.add(value.getKey().toString());
+            final JSONObject element = new JSONObject();
+            element.set("required", false);
+            element.set("id", value.getKey().toString());
+            array.add(element);
         }
         object.set("values", array);
 
