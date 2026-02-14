@@ -25,40 +25,51 @@ public class BlockBinarySearchLayerizer {
 
     public static final String PROPERTIES = "properties";
 
-    private final char ZERO;
+    public static final String NAMESPACE = "block_property_accessor";
 
-    private final char ONE;
+    public static final Path DATA_DIRECTORY = DatapackGenerator.ROOT_DIRECTORY.resolve("data");
+
+    public static final Path NAMESPACE_DIRECTORY = DATA_DIRECTORY.resolve(NAMESPACE);
+
+    public static final Path FUNCTION_DIRECTORY = NAMESPACE_DIRECTORY.resolve("function");
+
+    public static final Path TAGS_BLOCK_DIRECTORY = NAMESPACE_DIRECTORY.resolve("tags/block");
+
+    private static final char ZERO = '0';
+
+    private static final char ONE = '1';
+
+    private final DatapackGenerator generator;
 
     private final List<BlockType> list;
 
     private int c;
 
-    public BlockBinarySearchLayerizer(List<BlockType> list, char zero, char one) {
+    public BlockBinarySearchLayerizer(DatapackGenerator generator, List<BlockType> list) {
+        this.generator = generator;
         this.list = new ArrayList<>(list);
-        this.ZERO = zero;
-        this.ONE = one;
     }
 
     public void layerize() {
-        BlockPropertyAccessor.getPlugin().getComponentLogger().info("二分探索を階層構造化しています");
+        generator.getComponentLogger().info("二分探索を階層構造化しています");
 
-        layerize(list, BlockPropertyAccessor.FUNCTION_DIRECTORY);
+        layerize(list, FUNCTION_DIRECTORY);
 
-        BlockPropertyAccessor.getPlugin().getComponentLogger().info("階層構造の生成が完了しました");
+        generator.getComponentLogger().info("階層構造の生成が完了しました");
 
-        BlockPropertyAccessor.getPlugin().getComponentLogger().info("エントリポイントのコマンドを調整しています");
+        generator.getComponentLogger().info("エントリポイントのコマンドを調整しています");
 
-        final Path entrypoint = BlockPropertyAccessor.FUNCTION_DIRECTORY.resolve(".mcfunction");
+        final Path entrypoint = FUNCTION_DIRECTORY.resolve(".mcfunction");
         try {
             final List<String> lines = new ArrayList<>(Files.readAllLines(entrypoint));
             lines.addFirst(String.format(
                 "data remove storage %s: %s",
-                BlockPropertyAccessor.NAMESPACE,
+                NAMESPACE,
                 IDENTIFIER
             ));
             lines.addFirst(String.format(
                 "data remove storage %s: %s",
-                BlockPropertyAccessor.NAMESPACE,
+                NAMESPACE,
                 PROPERTIES
             ));
             Files.write(entrypoint, lines, StandardOpenOption.TRUNCATE_EXISTING);
@@ -67,9 +78,9 @@ public class BlockBinarySearchLayerizer {
             throw new RuntimeException(e);
         }
 
-        BlockPropertyAccessor.getPlugin().getComponentLogger().info("エントリポイントの編集が完了しました");
+        generator.getComponentLogger().info("エントリポイントの編集が完了しました");
 
-        BlockPropertyAccessor.getPlugin().getComponentLogger().info("処理されたブロックタイプ数: {}", c);
+        generator.getComponentLogger().info("処理されたブロックタイプ数: {}", c);
     }
 
     private @Nullable List<BlockType> layerize(List<BlockType> list, Path directory) {
@@ -88,7 +99,7 @@ public class BlockBinarySearchLayerizer {
             finalBranchFunction(directory, values);
 
             for (final BlockType value : values) {
-                BlockPropertyAccessor.getPlugin().getComponentLogger().info("ブロック {} に関連する処理を作成しました", value.getKey());
+                generator.getComponentLogger().info("ブロック {} に関連する処理を作成しました", value.getKey());
                 c++;
             }
 
@@ -101,8 +112,8 @@ public class BlockBinarySearchLayerizer {
             final List<BlockType> values0 = layerize(new ArrayList<>(a), directory.resolve(String.valueOf(ZERO)));
             final List<BlockType> values1 = layerize(new ArrayList<>(b), directory.resolve(String.valueOf(ONE)));
 
-            final Path relative = BlockPropertyAccessor.FUNCTION_DIRECTORY.relativize(directory);
-            final Path tagDirectory = BlockPropertyAccessor.TAGS_BLOCK_DIRECTORY.resolve(relative);
+            final Path relative = FUNCTION_DIRECTORY.relativize(directory);
+            final Path tagDirectory = TAGS_BLOCK_DIRECTORY.resolve(relative);
 
             try {
                 Files.createDirectories(tagDirectory);
@@ -131,16 +142,16 @@ public class BlockBinarySearchLayerizer {
                 Files.write(functionPath, List.of(
                     String.format(
                         "execute if block ~ ~ ~ #%s:%s run function %s:%s",
-                        BlockPropertyAccessor.NAMESPACE,
+                        NAMESPACE,
                         relative.resolve(String.valueOf(ZERO)).toString().replaceAll("\\\\", "/"),
-                        BlockPropertyAccessor.NAMESPACE,
+                        NAMESPACE,
                         relative.resolve(String.valueOf(ZERO)).toString().replaceAll("\\\\", "/") + '/'
                     ),
                     String.format(
                         "execute if block ~ ~ ~ #%s:%s run function %s:%s",
-                        BlockPropertyAccessor.NAMESPACE,
+                        NAMESPACE,
                         relative.resolve(String.valueOf(ONE)).toString().replaceAll("\\\\", "/"),
-                        BlockPropertyAccessor.NAMESPACE,
+                        NAMESPACE,
                         relative.resolve(String.valueOf(ONE)).toString().replaceAll("\\\\", "/") + '/'
                     )
                 ));
@@ -158,7 +169,7 @@ public class BlockBinarySearchLayerizer {
         final List<String> lines = new ArrayList<>();
 
         for (final BlockType blockType : values) {
-            final String functionName = BlockPropertyAccessor.FUNCTION_DIRECTORY
+            final String functionName = FUNCTION_DIRECTORY
                 .relativize(directory.resolve(blockType.getKey().value()))
                 .toString()
                 .replaceAll("\\\\", "/");
@@ -166,7 +177,7 @@ public class BlockBinarySearchLayerizer {
             lines.add(String.format(
                 "execute if block ~ ~ ~ %s run function %s:%s",
                 blockType.getKey(),
-                BlockPropertyAccessor.NAMESPACE,
+                NAMESPACE,
                 functionName
             ));
 
@@ -188,7 +199,7 @@ public class BlockBinarySearchLayerizer {
         final List<String> finalLines = new ArrayList<>();
         finalLines.add(String.format(
             "data modify storage %s: %s set value \"%s\"",
-            BlockPropertyAccessor.NAMESPACE,
+            NAMESPACE,
             IDENTIFIER,
             key
         ));
@@ -202,7 +213,7 @@ public class BlockBinarySearchLayerizer {
                 key,
                 property.getName(),
                 getPropertyValueName(value),
-                BlockPropertyAccessor.NAMESPACE,
+                NAMESPACE,
                 PROPERTIES,
                 property.getName(),
                 getPropertyValueName(value)
@@ -240,8 +251,8 @@ public class BlockBinarySearchLayerizer {
         final JSONObject object = new JSONObject();
         object.set("replace", false);
         final JSONArray array = new JSONArray();
-        final String $0 = '#' + BlockPropertyAccessor.NAMESPACE + ':' + directory.resolve(String.valueOf(ZERO)).toString().replaceAll("\\\\", "/");
-        final String $1 = '#' + BlockPropertyAccessor.NAMESPACE + ':' + directory.resolve(String.valueOf(ONE)).toString().replaceAll("\\\\", "/");
+        final String $0 = '#' + NAMESPACE + ':' + directory.resolve(String.valueOf(ZERO)).toString().replaceAll("\\\\", "/");
+        final String $1 = '#' + NAMESPACE + ':' + directory.resolve(String.valueOf(ONE)).toString().replaceAll("\\\\", "/");
         array.add(JSONObject.valueOf(Map.of("id", $0, "required", false)));
         array.add(JSONObject.valueOf(Map.of("id", $1, "required", false)));
         object.set("values", array);

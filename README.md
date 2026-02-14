@@ -1,16 +1,20 @@
 # BlockPropertyAccessor
 
+ブロックID及びブロック状態を全列挙することにより、ブロックのデータをコマンドから取得するためのデータパックを生成するPaperプラグイン
+<br>またはそれによって生成されたデータパックそのもの
+
 ## 使い方 ／ Usage
 
 ### 1. データパックの生成 ／ Generation
 
 > [!NOTE]
-> 基本的に、既に生成済みのデータパックが [Releases](https://github.com/Takenoko-II/BlockPropertyAccessor/releases/tag/v1.0.0) にあるのでこの項は必要に応じて読み飛ばしてOK
+> 基本的に、既に生成済みのデータパックが [Releases](https://github.com/Takenoko-II/BlockPropertyAccessor/releases) にあるのでこの項は必要に応じて読み飛ばしてOK
 
 1. 該当のバージョンの Paper を用意する
 2. `plugins/` にプラグインの `.jar` を入れる
 3. サーバーを起動する
-4. サーバーディレクトリ直下にデータパックの `.zip` が自動生成される！！！
+4. サーバーコンソールからコマンド `/blockpropertyaccessor` を実行する
+5. サーバーディレクトリ直下にデータパックの `.zip` が自動生成される！！！
 
 ### 2. データパックの導入 ／ Installation
 
@@ -104,3 +108,14 @@ block_property_accessor:
 ```
 
 `[C]` (コマンドの実行) を数えると約25コマンドであり、一度の探索にかかる実行数は100にも満たないことがわかる
+
+## 対応バージョン
+- `1.21.11`
+
+## ライセンス ／ License
+
+[**MIT LICENSE**](/LICENSE)
+
+## 連絡 ／ Contact
+
+- Twitter(X): [@Takenoko_4096](https://x.com/Takenoko_4096)
