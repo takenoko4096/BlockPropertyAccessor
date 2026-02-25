@@ -24,7 +24,7 @@
 
 以下のコマンドを実行すると、実行座標に存在するブロックのID・プロパティがすべてストレージ `block_property_accessor:` に格納される
 ```mcfunction
-function block_property_accessor:
+function #block_property_accessor:
 ```
 
 例えば上記のコマンドを実行した上で以下のコマンドを実行すると

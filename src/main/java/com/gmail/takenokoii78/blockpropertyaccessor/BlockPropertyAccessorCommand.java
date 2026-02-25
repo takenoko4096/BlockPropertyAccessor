@@ -37,7 +37,7 @@ public class BlockPropertyAccessorCommand extends AbstractCommand {
             return 1;
         }
         else {
-            return failure(context.getSource(), new RuntimeException(
+            return failure(context, new RuntimeException(
                 "現在生成中のため重複して実行することができません"
             ));
         }

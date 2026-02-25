@@ -1,12 +1,15 @@
 package com.gmail.takenokoii78.blockpropertyaccessor;
 
 import com.gmail.takenokoii78.json.JSONFile;
+import com.gmail.takenokoii78.json.JSONPath;
 import com.gmail.takenokoii78.json.values.JSONArray;
 import com.gmail.takenokoii78.json.values.JSONObject;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.minecraft.world.level.block.state.properties.Property;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockType;
 import org.bukkit.craftbukkit.block.CraftBlockType;
+import org.bukkit.plugin.Plugin;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -35,29 +38,35 @@ public class BlockBinarySearchLayerizer {
 
     public static final Path TAGS_BLOCK_DIRECTORY = NAMESPACE_DIRECTORY.resolve("tags/block");
 
+    public static final Path TAGS_FUNCTION_DIRECTORY = NAMESPACE_DIRECTORY.resolve("tags/function");
+
     private static final char ZERO = '0';
 
     private static final char ONE = '1';
 
-    private final DatapackGenerator generator;
+    private final Plugin plugin;
 
     private final List<BlockType> list;
 
     private int c;
 
-    public BlockBinarySearchLayerizer(DatapackGenerator generator, List<BlockType> list) {
-        this.generator = generator;
+    public BlockBinarySearchLayerizer(Plugin plugin, List<BlockType> list) {
+        this.plugin = plugin;
         this.list = new ArrayList<>(list);
     }
 
+    private ComponentLogger getComponentLogger() {
+        return plugin.getComponentLogger();
+    }
+
     public void layerize() {
-        generator.getComponentLogger().info("二分探索を階層構造化しています");
+        getComponentLogger().info("二分探索を階層構造化しています");
 
         layerize(list, FUNCTION_DIRECTORY);
 
-        generator.getComponentLogger().info("階層構造の生成が完了しました");
+        getComponentLogger().info("階層構造の生成が完了しました");
 
-        generator.getComponentLogger().info("エントリポイントのコマンドを調整しています");
+        getComponentLogger().info("エントリポイントのコマンドを調整しています");
 
         final Path entrypoint = FUNCTION_DIRECTORY.resolve(".mcfunction");
         try {
@@ -78,9 +87,19 @@ public class BlockBinarySearchLayerizer {
             throw new RuntimeException(e);
         }
 
-        generator.getComponentLogger().info("エントリポイントの編集が完了しました");
+        getComponentLogger().info("エントリポイントの編集が完了しました");
 
-        generator.getComponentLogger().info("処理されたブロックタイプ数: {}", c);
+        getComponentLogger().info("処理されたブロックタイプ数: {}", c);
+
+        getComponentLogger().info("関数タグを作成します");
+
+        final Path tagJsonPath = TAGS_FUNCTION_DIRECTORY.resolve(".json");
+        final JSONFile file = new JSONFile(tagJsonPath);
+        final JSONObject object = file.readAsObject();
+        object.set("values", JSONArray.valueOf(List.of(NAMESPACE + ':')));
+        file.write(object);
+
+        getComponentLogger().info("関数タグ '#{}' を作成しました", NAMESPACE + ':');
     }
 
     private @Nullable List<BlockType> layerize(List<BlockType> list, Path directory) {
@@ -99,7 +118,7 @@ public class BlockBinarySearchLayerizer {
             finalBranchFunction(directory, values);
 
             for (final BlockType value : values) {
-                generator.getComponentLogger().info("ブロック {} に関連する処理を作成しました", value.getKey());
+                getComponentLogger().info("ブロック {} に関連する処理を作成しました", value.getKey());
                 c++;
             }
 

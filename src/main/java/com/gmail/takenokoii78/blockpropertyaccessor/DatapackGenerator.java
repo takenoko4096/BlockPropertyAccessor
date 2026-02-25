@@ -36,7 +36,7 @@ public class DatapackGenerator {
         this.plugin = plugin;
     }
 
-    public ComponentLogger getComponentLogger() {
+    private ComponentLogger getComponentLogger() {
         return plugin.getComponentLogger();
     }
 
@@ -58,15 +58,24 @@ public class DatapackGenerator {
         }
 
         final ResourceAccess resourceAccess = new ResourceAccess(BlockPropertyAccessor.BLOCK_PROPERTY_ACCESSOR);
-        resourceAccess.copy(ROOT_DIRECTORY, handle -> {
-            if (handle.getTo().endsWith("MARKER")) {
-                handle.ignore();
-            }
-            else if (handle.getTo().endsWith("pack.mcmeta")) {
-                handle.postProcess(p -> {
-                    getComponentLogger().info("pack.mcmeta を作成しています");
 
-                    final JSONFile packMcmeta = new JSONFile(p);
+        getComponentLogger().info("リソースからデータパックの雛形をコピーしています");
+
+        resourceAccess.copy(ROOT_DIRECTORY, events -> {
+            events.register(ResourceAccess.RESOURCE_COPY_BEFORE, e -> {
+                if (e.getTo().endsWith(".gitkeep")) {
+                    e.ignore();
+                    getComponentLogger().info("{} に .gitkeep を検出; 無視しました", e.getTo());
+                }
+            });
+
+            events.register(ResourceAccess.RESOURCE_COPY_AFTER, e -> {
+                getComponentLogger().info("{} をコピーしました", e.getTo());
+
+                if (e.getTo().endsWith("pack.mcmeta")) {
+                    getComponentLogger().info("pack.mcmeta を編集しています");
+
+                    final JSONFile packMcmeta = new JSONFile(e.getTo());
                     final JSONObject jsonObject = packMcmeta.readAsObject();
 
                     final PackFormat packFormat = SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA);
@@ -78,19 +87,21 @@ public class DatapackGenerator {
                     packMcmeta.write(jsonObject);
 
                     getComponentLogger().info("pack.mcmeta をロードしました: バージョン {}", version.asList());
-                });
-            }
+                }
+            });
         });
 
-        final BlockBinarySearchLayerizer layerizer = new BlockBinarySearchLayerizer(this, Registry.BLOCK.stream().toList());
+        final BlockBinarySearchLayerizer layerizer = new BlockBinarySearchLayerizer(this.plugin, Registry.BLOCK.stream().toList());
         layerizer.layerize();
 
         getComponentLogger().info("データパックを .zip に圧縮しています");
 
-        final ZipCompressor compressor = new ZipCompressor(ROOT_DIRECTORY);
+        final ZipCompressor compressor = new ZipCompressor(plugin, ROOT_DIRECTORY);
         compressor.compress(FINAL_OUTPUT);
 
-        getComponentLogger().info("不要なファイルを除去します");
+        getComponentLogger().info(".zip に圧縮したコピーを生成しました");
+
+        getComponentLogger().info("不要なコピー元ファイルを除去します");
 
         try (final Stream<Path> stream = Files.walk(ROOT_DIRECTORY).sorted(Comparator.reverseOrder())) {
             stream.forEach(path -> {
@@ -100,11 +111,15 @@ public class DatapackGenerator {
                 catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+
+                getComponentLogger().info("不要ファイル {} を削除しました", path);
             });
         }
         catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        getComponentLogger().info("不要なファイルの除去が完了しました");
 
         getComponentLogger().info(
             Component.text("データパック {} が生成されました").color(NamedTextColor.GREEN),
