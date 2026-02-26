@@ -1,6 +1,7 @@
 package com.gmail.takenokoii78.blockpropertyaccessor;
 
 import com.gmail.subnokoii78.gpcore.commands.AbstractCommand;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
