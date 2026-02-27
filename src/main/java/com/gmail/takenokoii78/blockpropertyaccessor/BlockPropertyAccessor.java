@@ -7,8 +7,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.nio.file.*;
-
 @NullMarked
 public final class BlockPropertyAccessor extends JavaPlugin {
     public static final String BLOCK_PROPERTY_ACCESSOR = "BlockPropertyAccessor";
