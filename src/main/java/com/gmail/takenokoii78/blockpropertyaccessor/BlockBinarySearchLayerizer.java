@@ -1,7 +1,6 @@
 package com.gmail.takenokoii78.blockpropertyaccessor;
 
 import com.gmail.takenokoii78.json.JSONFile;
-import com.gmail.takenokoii78.json.JSONPath;
 import com.gmail.takenokoii78.json.values.JSONArray;
 import com.gmail.takenokoii78.json.values.JSONObject;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -48,7 +47,9 @@ public class BlockBinarySearchLayerizer {
 
     private final List<BlockType> list;
 
-    private int c;
+    private int blockTypeCount;
+
+    private int lastProgress = 0;
 
     public BlockBinarySearchLayerizer(Plugin plugin, List<BlockType> list) {
         this.plugin = plugin;
@@ -89,7 +90,7 @@ public class BlockBinarySearchLayerizer {
 
         getComponentLogger().info("エントリポイントの編集が完了しました");
 
-        getComponentLogger().info("処理されたブロックタイプ数: {}", c);
+        getComponentLogger().info("処理されたブロックタイプ数: {}", blockTypeCount);
 
         getComponentLogger().info("関数タグを作成します");
 
@@ -117,9 +118,14 @@ public class BlockBinarySearchLayerizer {
 
             finalBranchFunction(directory, values);
 
-            for (final BlockType value : values) {
-                getComponentLogger().info("ブロック {} に関連する処理を作成しました", value.getKey());
-                c++;
+            for (final BlockType ignored : values) {
+                blockTypeCount++;
+
+                final int progress = 100 * blockTypeCount / this.list.size();
+                if (progress % 10 == 0 && progress != lastProgress) {
+                    lastProgress = progress;
+                    getComponentLogger().info("進捗率: {} %", progress);
+                }
             }
 
             return values;

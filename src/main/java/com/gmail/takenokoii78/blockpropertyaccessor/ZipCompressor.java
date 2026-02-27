@@ -10,7 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.List;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -39,7 +39,7 @@ public class ZipCompressor {
             getComponentLogger().info("対象ディレクトリを検出しました: {}", directory);
 
             try (final ZipOutputStream zip = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(out.toFile())))) {
-                directory(directory.getNameCount(), directory, zip);
+                copyToZip(zip);
             }
             catch (IOException e) {
                 throw new RuntimeException(e);
@@ -47,31 +47,31 @@ public class ZipCompressor {
         }
     }
 
-    private void directory(int rootDirectoryNameCount, Path path, ZipOutputStream zip) throws IOException {
-        try (final Stream<Path> stream = Files.list(path)) {
-            stream.forEach(p -> {
-                try {
-                    final String name = p.subpath(rootDirectoryNameCount, p.getNameCount())
-                        .toString()
-                        .replace(File.separatorChar, '/');
+    private void copyToZip(ZipOutputStream zip) {
+        int lastProgress = 0;
 
-                    if (Files.isDirectory(p)) {
-                        zip.putNextEntry(new ZipEntry(name + '/'));
-                        zip.closeEntry();
-                        getComponentLogger().info("ディレクトリ {} を .zip 内に配置しました; コピー元の内部を探索します", name);
-                        directory(rootDirectoryNameCount, p, zip);
-                    }
-                    else {
-                        zip.putNextEntry(new ZipEntry(name));
-                        Files.copy(p, zip);
-                        zip.closeEntry();
-                        getComponentLogger().info("ファイル {} を .zip 内に配置しました", name);
-                    }
+        try (final Stream<Path> stream = Files.walk(directory)) {
+            final List<Path> paths = stream.toList();
+
+            for (int i = 0; i < paths.size(); i++) {
+                final Path path = paths.get(i);
+
+                if (Files.isDirectory(path)) continue;
+
+                final String name = directory.relativize(path).toString().replace(File.separatorChar, '/');
+                zip.putNextEntry(new ZipEntry(name));
+                Files.copy(path, zip);
+                zip.closeEntry();
+
+                final int progress = (i + 1) * 100 / paths.size();
+                if (progress % 10 == 0 && lastProgress != progress) {
+                    lastProgress = progress;
+                    getComponentLogger().info("進捗率: {} %", progress);
                 }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            }
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

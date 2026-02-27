@@ -51,7 +51,10 @@ public class DatapackGenerator {
 
         if (Files.exists(FINAL_OUTPUT)) try {
             getComponentLogger().info("重複した出力先パスを消去しています");
+
             Files.delete(FINAL_OUTPUT);
+
+            getComponentLogger().info("重複した出力先パスを消去しました");
         }
         catch (IOException e) {
             throw new RuntimeException(e);
@@ -104,7 +107,13 @@ public class DatapackGenerator {
         getComponentLogger().info("不要なコピー元ファイルを除去します");
 
         try (final Stream<Path> stream = Files.walk(ROOT_DIRECTORY).sorted(Comparator.reverseOrder())) {
-            stream.forEach(path -> {
+            final List<Path> paths = stream.toList();
+
+            int lastProgress = 0;
+
+            for (int i = 0; i < paths.size(); i++) {
+                final Path path = paths.get(i);
+
                 try {
                     Files.delete(path);
                 }
@@ -112,8 +121,12 @@ public class DatapackGenerator {
                     throw new RuntimeException(e);
                 }
 
-                getComponentLogger().info("不要ファイル {} を削除しました", path);
-            });
+                final int progress = (i + 1) * 100 / paths.size();
+                if (progress % 10 == 0 && lastProgress != progress) {
+                    lastProgress = progress;
+                    getComponentLogger().info("進捗率: {} %", progress);
+                }
+            }
         }
         catch (IOException e) {
             throw new RuntimeException(e);
