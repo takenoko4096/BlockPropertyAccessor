@@ -5,6 +5,8 @@ import com.gmail.takenokoii78.json.JSONFile;
 import com.gmail.takenokoii78.json.JSONPath;
 import com.gmail.takenokoii78.json.values.JSONArray;
 import com.gmail.takenokoii78.json.values.JSONObject;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
@@ -12,7 +14,6 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.pack.PackFormat;
 import org.bukkit.Bukkit;
-import org.bukkit.Registry;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,7 +41,7 @@ public class DatapackGenerator {
         return plugin.getComponentLogger();
     }
 
-    public boolean startGenerating() {
+    public boolean startGenerating(boolean requireTypeTraits, boolean requireDataTraits) {
         if (isProcessing) {
             return false;
         }
@@ -94,7 +95,13 @@ public class DatapackGenerator {
             });
         });
 
-        final BlockBinarySearchLayerizer layerizer = new BlockBinarySearchLayerizer(this.plugin, Registry.BLOCK.stream().toList());
+        final BlockBinarySearchLayerizer layerizer = new BlockBinarySearchLayerizer(
+            plugin,
+            RegistryAccess.registryAccess().getRegistry(RegistryKey.BLOCK),
+            requireTypeTraits,
+            requireDataTraits
+        );
+
         layerizer.layerize();
 
         getComponentLogger().info("データパックを .zip に圧縮しています");

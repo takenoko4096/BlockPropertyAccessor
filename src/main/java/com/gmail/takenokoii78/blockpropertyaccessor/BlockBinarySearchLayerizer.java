@@ -5,8 +5,12 @@ import com.gmail.takenokoii78.json.values.JSONArray;
 import com.gmail.takenokoii78.json.values.JSONObject;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.minecraft.world.level.block.state.properties.Property;
+import org.bukkit.Color;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.SoundGroup;
 import org.bukkit.block.BlockType;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.block.CraftBlockType;
 import org.bukkit.plugin.Plugin;
 import org.jspecify.annotations.NullMarked;
@@ -26,6 +30,10 @@ public class BlockBinarySearchLayerizer {
     public static final String IDENTIFIER = "id";
 
     public static final String PROPERTIES = "properties";
+
+    public static final String TYPE_TRAITS = "type_traits";
+
+    public static final String DATA_TRAITS = "data_traits";
 
     public static final String NAMESPACE = "block_property_accessor";
 
@@ -51,9 +59,15 @@ public class BlockBinarySearchLayerizer {
 
     private int lastProgress = 0;
 
-    public BlockBinarySearchLayerizer(Plugin plugin, List<BlockType> list) {
+    private final boolean requireTypeTraits;
+
+    private final boolean requireDataTraits;
+
+    public BlockBinarySearchLayerizer(Plugin plugin, Registry<BlockType> registry, boolean requireTypeTraits, boolean requireDataTraits) {
         this.plugin = plugin;
-        this.list = new ArrayList<>(list);
+        this.list = new ArrayList<>(registry.stream().toList());
+        this.requireTypeTraits = requireTypeTraits;
+        this.requireDataTraits = requireDataTraits;
     }
 
     private ComponentLogger getComponentLogger() {
@@ -243,6 +257,184 @@ public class BlockBinarySearchLayerizer {
                 property.getName(),
                 getPropertyValueName(value)
             )));
+        }
+
+        if (requireTypeTraits) {
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "blast_resistance",
+                blockType.getBlastResistance() + "f"
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "hardness",
+                blockType.getHardness() + "f"
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "slipperiness",
+                blockType.getSlipperiness() + "f"
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "is_flammable",
+                blockType.isFlammable()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "is_burnable",
+                blockType.isBurnable()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "is_occluding",
+                blockType.isOccluding()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "is_solid",
+                blockType.isSolid()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "has_collision",
+                blockType.hasCollision()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "has_gravity",
+                blockType.hasGravity()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "is_air",
+                blockType.isAir()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value '%s'",
+                NAMESPACE,
+                TYPE_TRAITS,
+                "translation_key",
+                blockType.translationKey()
+            ));
+
+            if (blockType.hasItemType()) {
+                finalLines.add(String.format(
+                    "data modify storage %s: %s.%s set value '%s'",
+                    NAMESPACE,
+                    TYPE_TRAITS,
+                    "item_type",
+                    blockType.getItemType().getKey()
+                ));
+            }
+        }
+
+        if (requireDataTraits) {
+            final BlockData blockData = blockType.createBlockData();
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "light_emission",
+                blockData.getLightEmission()
+            ));
+
+            final Color color = blockData.getMapColor();
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "map_color",
+                String.format(
+                    "{red: %d, green: %d, blue: %d}",
+                    color.getRed(),
+                    color.getGreen(),
+                    color.getBlue()
+                )
+            ));
+
+            final SoundGroup soundGroup = blockData.getSoundGroup();
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "sound_group",
+                String.format(
+                    "{on_break: '%s', on_fall: '%s', on_hit: '%s', on_place: '%s', on_step: '%s', volume: %s, pitch: %s}",
+                    Registry.SOUNDS.getKey(soundGroup.getBreakSound()).toString(),
+                    Registry.SOUNDS.getKey(soundGroup.getFallSound()).toString(),
+                    Registry.SOUNDS.getKey(soundGroup.getHitSound()).toString(),
+                    Registry.SOUNDS.getKey(soundGroup.getPlaceSound()).toString(),
+                    Registry.SOUNDS.getKey(soundGroup.getStepSound()).toString(),
+                    soundGroup.getVolume() + "f",
+                    soundGroup.getPitch() + "f"
+                )
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "piston_move_reaction",
+                blockData.getPistonMoveReaction().name().toLowerCase()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "is_replaceable",
+                blockData.isReplaceable()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "is_randomly_ticked",
+                blockData.isRandomlyTicked()
+            ));
+
+            finalLines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                DATA_TRAITS,
+                "requires_correct_tool_for_drops",
+                blockData.requiresCorrectToolForDrops()
+            ));
         }
 
         try {
