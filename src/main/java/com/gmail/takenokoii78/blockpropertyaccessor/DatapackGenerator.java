@@ -104,6 +104,10 @@ public class DatapackGenerator {
 
         layerizer.layerize();
 
+        /*getComponentLogger().info("ルートテーブルを生成します");
+        new LongLootTableGenerator(RegistryAccess.registryAccess().getRegistry(RegistryKey.BLOCK)).writeOut();
+        getComponentLogger().info("ルートテーブルを生成しました");*/
+
         getComponentLogger().info("データパックを .zip に圧縮しています");
 
         final ZipCompressor compressor = new ZipCompressor(plugin, ROOT_DIRECTORY);
