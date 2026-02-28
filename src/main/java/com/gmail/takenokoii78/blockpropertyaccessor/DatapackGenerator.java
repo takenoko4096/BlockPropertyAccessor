@@ -41,7 +41,7 @@ public class DatapackGenerator {
         return plugin.getComponentLogger();
     }
 
-    public boolean startGenerating(boolean requireTypeTraits, boolean requireDataTraits) {
+    public boolean startGenerating() {
         if (isProcessing) {
             return false;
         }
@@ -97,9 +97,7 @@ public class DatapackGenerator {
 
         final BlockBinarySearchLayerizer layerizer = new BlockBinarySearchLayerizer(
             plugin,
-            RegistryAccess.registryAccess().getRegistry(RegistryKey.BLOCK),
-            requireTypeTraits,
-            requireDataTraits
+            RegistryAccess.registryAccess().getRegistry(RegistryKey.BLOCK)
         );
 
         layerizer.layerize();

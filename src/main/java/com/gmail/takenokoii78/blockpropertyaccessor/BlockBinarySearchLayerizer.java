@@ -20,10 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @NullMarked
 public class BlockBinarySearchLayerizer {
@@ -31,9 +28,9 @@ public class BlockBinarySearchLayerizer {
 
     public static final String PROPERTIES = "properties";
 
-    public static final String TYPE_TRAITS = "type_traits";
+    public static final String TRAITS = "traits";
 
-    public static final String DATA_TRAITS = "data_traits";
+    public static final String REQUIRE_TRAITS = "require_traits";
 
     public static final String NAMESPACE = "block_property_accessor";
 
@@ -59,15 +56,9 @@ public class BlockBinarySearchLayerizer {
 
     private int lastProgress = 0;
 
-    private final boolean requireTypeTraits;
-
-    private final boolean requireDataTraits;
-
-    public BlockBinarySearchLayerizer(Plugin plugin, Registry<BlockType> registry, boolean requireTypeTraits, boolean requireDataTraits) {
+    public BlockBinarySearchLayerizer(Plugin plugin, Registry<BlockType> registry) {
         this.plugin = plugin;
         this.list = new ArrayList<>(registry.stream().toList());
-        this.requireTypeTraits = requireTypeTraits;
-        this.requireDataTraits = requireDataTraits;
     }
 
     private ComponentLogger getComponentLogger() {
@@ -89,14 +80,44 @@ public class BlockBinarySearchLayerizer {
             lines.addFirst(String.format(
                 "data remove storage %s: %s",
                 NAMESPACE,
-                IDENTIFIER
+                TRAITS
             ));
             lines.addFirst(String.format(
                 "data remove storage %s: %s",
                 NAMESPACE,
                 PROPERTIES
             ));
+            lines.addFirst(String.format(
+                "data remove storage %s: %s",
+                NAMESPACE,
+                IDENTIFIER
+            ));
             Files.write(entrypoint, lines, StandardOpenOption.TRUNCATE_EXISTING);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        final Path withTraits = FUNCTION_DIRECTORY.resolve("with_traits.mcfunction");
+        final List<String> lines = List.of(
+            String.format(
+                "data modify storage %s: %s set value true",
+                NAMESPACE,
+                REQUIRE_TRAITS
+            ),
+            String.format(
+                "function %s:",
+                NAMESPACE
+            ),
+            String.format(
+                "data remove storage %s: %s",
+                NAMESPACE,
+                REQUIRE_TRAITS
+            )
+        );
+        try {
+            Files.createFile(withTraits);
+            Files.write(withTraits, lines, StandardOpenOption.TRUNCATE_EXISTING);
         }
         catch (IOException e) {
             throw new RuntimeException(e);
@@ -115,6 +136,14 @@ public class BlockBinarySearchLayerizer {
         file.write(object);
 
         getComponentLogger().info("関数タグ '#{}' を作成しました", NAMESPACE + ':');
+
+        final Path tagJsonPath2 = TAGS_FUNCTION_DIRECTORY.resolve("with_traits.json");
+        final JSONFile file2 = new JSONFile(tagJsonPath2);
+        final JSONObject object2 = file2.readAsObject();
+        object2.set("values", JSONArray.valueOf(List.of(NAMESPACE + ':' + "with_traits")));
+        file2.write(object2);
+
+        getComponentLogger().info("関数タグ '#{}' を作成しました", NAMESPACE + ':' + "with_traits");
     }
 
     private @Nullable List<BlockType> layerize(List<BlockType> list, Path directory) {
@@ -235,8 +264,8 @@ public class BlockBinarySearchLayerizer {
     private void dataModifyFunction(Path directory, BlockType blockType) {
         final NamespacedKey key = blockType.getKey();
         final Path specificBlockFunctionPath = directory.resolve(key.value() + ".mcfunction");
-        final List<String> finalLines = new ArrayList<>();
-        finalLines.add(String.format(
+        final List<String> lines = new ArrayList<>();
+        lines.add(String.format(
             "data modify storage %s: %s set value \"%s\"",
             NAMESPACE,
             IDENTIFIER,
@@ -247,7 +276,7 @@ public class BlockBinarySearchLayerizer {
             .defaultBlockState().getProperties();
 
         for (final Property<?> property : properties) {
-            property.getAllValues().forEach(value -> finalLines.add(String.format(
+            property.getAllValues().forEach(value -> lines.add(String.format(
                 "execute if block ~ ~ ~ %s[%s=%s] run data modify storage %s: %s.%s set value %s",
                 key,
                 property.getName(),
@@ -259,187 +288,76 @@ public class BlockBinarySearchLayerizer {
             )));
         }
 
-        if (requireTypeTraits) {
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "blast_resistance",
-                blockType.getBlastResistance() + "f"
-            ));
+        final String traitsFunctionName = FUNCTION_DIRECTORY
+            .relativize(directory.resolve(key.value() + "_traits"))
+            .toString()
+            .replaceAll("\\\\", "/");
 
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "hardness",
-                blockType.getHardness() + "f"
-            ));
+        lines.add(String.format(
+            "execute if data storage %s: {%s: true} run function %s:%s",
+            NAMESPACE,
+            REQUIRE_TRAITS,
+            NAMESPACE,
+            traitsFunctionName
+        ));
 
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "slipperiness",
-                blockType.getSlipperiness() + "f"
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "is_flammable",
-                blockType.isFlammable()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "is_burnable",
-                blockType.isBurnable()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "is_occluding",
-                blockType.isOccluding()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "is_solid",
-                blockType.isSolid()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "has_collision",
-                blockType.hasCollision()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "has_gravity",
-                blockType.hasGravity()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "is_air",
-                blockType.isAir()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value '%s'",
-                NAMESPACE,
-                TYPE_TRAITS,
-                "translation_key",
-                blockType.translationKey()
-            ));
-
-            if (blockType.hasItemType()) {
-                finalLines.add(String.format(
-                    "data modify storage %s: %s.%s set value '%s'",
-                    NAMESPACE,
-                    TYPE_TRAITS,
-                    "item_type",
-                    blockType.getItemType().getKey()
-                ));
-            }
-        }
-
-        if (requireDataTraits) {
-            final BlockData blockData = blockType.createBlockData();
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "light_emission",
-                blockData.getLightEmission()
-            ));
-
-            final Color color = blockData.getMapColor();
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "map_color",
-                String.format(
-                    "{red: %d, green: %d, blue: %d}",
-                    color.getRed(),
-                    color.getGreen(),
-                    color.getBlue()
-                )
-            ));
-
-            final SoundGroup soundGroup = blockData.getSoundGroup();
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "sound_group",
-                String.format(
-                    "{on_break: '%s', on_fall: '%s', on_hit: '%s', on_place: '%s', on_step: '%s', volume: %s, pitch: %s}",
-                    Registry.SOUNDS.getKey(soundGroup.getBreakSound()).toString(),
-                    Registry.SOUNDS.getKey(soundGroup.getFallSound()).toString(),
-                    Registry.SOUNDS.getKey(soundGroup.getHitSound()).toString(),
-                    Registry.SOUNDS.getKey(soundGroup.getPlaceSound()).toString(),
-                    Registry.SOUNDS.getKey(soundGroup.getStepSound()).toString(),
-                    soundGroup.getVolume() + "f",
-                    soundGroup.getPitch() + "f"
-                )
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "piston_move_reaction",
-                blockData.getPistonMoveReaction().name().toLowerCase()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "is_replaceable",
-                blockData.isReplaceable()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "is_randomly_ticked",
-                blockData.isRandomlyTicked()
-            ));
-
-            finalLines.add(String.format(
-                "data modify storage %s: %s.%s set value %s",
-                NAMESPACE,
-                DATA_TRAITS,
-                "requires_correct_tool_for_drops",
-                blockData.requiresCorrectToolForDrops()
-            ));
-        }
+        traitsFunction(directory, blockType);
 
         try {
             Files.createFile(specificBlockFunctionPath);
-            Files.write(specificBlockFunctionPath, finalLines);
+            Files.write(specificBlockFunctionPath, lines);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void traitsFunction(Path directory, BlockType blockType) {
+        final Path path = directory.resolve(blockType.key().value() + "_traits.mcfunction");
+        final BlockTraits blockTraits = new BlockTraits();
+
+        blockTraits.addTrait("blast_resistance", blockType.getBlastResistance());
+        blockTraits.addTrait("hardness", blockType.getHardness());
+        blockTraits.addTrait("slipperiness", blockType.getSlipperiness());
+        blockTraits.addTrait("is_flammable", blockType.isFlammable());
+        blockTraits.addTrait("is_burnable", blockType.isBurnable());
+        blockTraits.addTrait("is_occluding", blockType.isOccluding());
+        blockTraits.addTrait("is_solid", blockType.isSolid());
+        blockTraits.addTrait("has_collision", blockType.hasCollision());
+        blockTraits.addTrait("has_gravity", blockType.hasGravity());
+        blockTraits.addTrait("is_air", blockType.isAir());
+        blockTraits.addTrait("translation_key", blockType.translationKey());
+        if (blockType.hasItemType()) blockTraits.addTrait("item_type", blockType.getItemType().getKey().toString());
+
+        final BlockData blockData = blockType.createBlockData();
+        blockTraits.addTrait("light_emission", blockData.getLightEmission());
+
+        final Color color = blockData.getMapColor();
+        blockTraits.addTrait("map_color", Map.of(
+            "red", color.getRed(),
+            "green", color.getGreen(),
+            "blue", color.getBlue()
+        ));
+
+        final SoundGroup soundGroup = blockData.getSoundGroup();
+        blockTraits.addTrait("sound_group", Map.of(
+            "on_break", Registry.SOUNDS.getKey(soundGroup.getBreakSound()).toString(),
+            "on_fall", Registry.SOUNDS.getKey(soundGroup.getFallSound()).toString(),
+            "on_hit", Registry.SOUNDS.getKey(soundGroup.getHitSound()).toString(),
+            "on_place", Registry.SOUNDS.getKey(soundGroup.getPlaceSound()).toString(),
+            "on_step", Registry.SOUNDS.getKey(soundGroup.getStepSound()).toString(),
+            "volume", soundGroup.getVolume(),
+            "pitch", soundGroup.getPitch()
+        ));
+
+        blockTraits.addTrait("piston_move_reaction", blockData.getPistonMoveReaction().name().toLowerCase());
+        blockTraits.addTrait("is_replaceable", blockData.isReplaceable());
+        blockTraits.addTrait("is_randomly_ticked", blockData.isRandomlyTicked());
+        blockTraits.addTrait("requires_correct_tool_for_drops", blockData.requiresCorrectToolForDrops());
+
+        try {
+            Files.createFile(path);
+            Files.write(path, blockTraits.lines());
         }
         catch (IOException e) {
             throw new RuntimeException(e);
@@ -477,5 +395,46 @@ public class BlockBinarySearchLayerizer {
         final JSONFile file = new JSONFile(path);
         if (!file.exists()) file.create();
         file.write(object);
+    }
+
+    public static final class BlockTraits {
+        private final List<String> lines = new ArrayList<>();
+
+        public void addTrait(String name, Object value) {
+            lines.add(String.format(
+                "data modify storage %s: %s.%s set value %s",
+                NAMESPACE,
+                TRAITS,
+                name,
+                stringify(value)
+            ));
+        }
+
+        private String stringify(Object value) {
+            return switch (value) {
+                case Boolean b -> String.valueOf(b);
+                case Byte b -> b + "b";
+                case Short s -> s + "s";
+                case Long l -> l + "L";
+                case Float f -> f + "f";
+                case Double d -> d + "d";
+                case String s -> "\"" + s + "\"";
+                case Map<?, ?> m -> {
+                    String c = "{";
+                    final Set<? extends Map.Entry<?, ?>> entries = Set.copyOf(m.entrySet());
+                    final String s = String.join(", ", entries.stream().map(entry -> {
+                        return entry.getKey().toString() + ": " + stringify(entry.getValue());
+                    }).toArray(String[]::new));
+                    c += s;
+                    c += "}";
+                    yield c;
+                }
+                default -> value.toString();
+            };
+        }
+
+        public List<String> lines() {
+            return lines;
+        }
     }
 }
