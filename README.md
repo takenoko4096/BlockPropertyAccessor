@@ -22,6 +22,8 @@
 
 ### 3. データパックの使い方 ／ Usage
 
+#### `#block_property_accessor:`
+
 以下のコマンドを実行すると、実行座標に存在するブロックのID・プロパティがすべてストレージ `block_property_accessor:` に格納される
 ```mcfunction
 function #block_property_accessor:
@@ -41,6 +43,17 @@ data get storage block_property_accessor:
     }
 }
 ```
+
+#### `#block_property_accessor:with_traits`
+
+`id`, `properties` に加えて、 `traits` キーに様々な情報を格納するオプション
+<br>以下のコマンドを実行すると
+```mcfunction
+function #block_property_accessor:with_traits
+data get storage block_property_accessor:
+```
+こんなかんじになる
+<img src="assets/data.png">
 
 ### 4. 実行負荷 ／ Load
 
