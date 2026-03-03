@@ -19,12 +19,12 @@ public class LongLootTableGenerator {
         this.list = new ArrayList<>(registry.stream().toList());
     }
 
-    public void writeOut() {
-        final JSONFile jsonFile = new JSONFile(BlockBinarySearchLayerizer.NAMESPACE_DIRECTORY.resolve("loot_table/.json"));
+    /*public void writeOut() {
+        final JSONFile jsonFile = new JSONFile(BlockBinarySearchLayerizer.namespaceDirectory.resolve("loot_table/.json"));
         jsonFile.getPath().getParent().toFile().mkdirs();
         if (!jsonFile.exists()) jsonFile.create();
         jsonFile.write(jsonObject());
-    }
+    }*/
 
     private JSONObject jsonObject() {
         final JSONObject root = new JSONObject();

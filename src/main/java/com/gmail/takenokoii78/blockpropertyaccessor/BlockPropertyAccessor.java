@@ -3,6 +3,7 @@ package com.gmail.takenokoii78.blockpropertyaccessor;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -25,6 +26,8 @@ public final class BlockPropertyAccessor extends JavaPlugin {
     public void onEnable() {
         getComponentLogger().info("BlockPropertyAccessor が起動しました");
 
+        getDataFolder().mkdirs();
+
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands registrar = event.registrar();
             BlockPropertyAccessorCommand.BLOCK_PROPERTY_ACCESSOR_COMMAND.register(registrar);
@@ -38,6 +41,10 @@ public final class BlockPropertyAccessor extends JavaPlugin {
 
     public DatapackGenerator getDatapackGenerator() {
         return datapackGenerator;
+    }
+
+    public String getDatapackFileName() {
+        return BLOCK_PROPERTY_ACCESSOR + '-' + getPluginMeta().getVersion() + '-' + Bukkit.getMinecraftVersion() + ".zip";
     }
 
     public static BlockPropertyAccessor getBlockPropertyAccessor() {

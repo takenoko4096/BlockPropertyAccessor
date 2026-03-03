@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.gmail.takenokoii78"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 description = "ブロックID及びブロック状態を全列挙するデータパックを生成するためのプラグイン"
 
 repositories {

@@ -4,6 +4,7 @@ import com.gmail.takenokoii78.json.JSONFile;
 import com.gmail.takenokoii78.json.values.JSONArray;
 import com.gmail.takenokoii78.json.values.JSONObject;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.Property;
 import org.bukkit.Color;
 import org.bukkit.NamespacedKey;
@@ -34,15 +35,16 @@ public class BlockBinarySearchLayerizer {
 
     public static final String NAMESPACE = "block_property_accessor";
 
-    public static final Path DATA_DIRECTORY = DatapackGenerator.ROOT_DIRECTORY.resolve("data");
+    private final Path dataDirectory = BlockPropertyAccessor.getBlockPropertyAccessor()
+        .getDatapackGenerator().getProcessRootDirectory().resolve("data");
 
-    public static final Path NAMESPACE_DIRECTORY = DATA_DIRECTORY.resolve(NAMESPACE);
+    private final Path namespaceDirectory = dataDirectory.resolve(NAMESPACE);
 
-    public static final Path FUNCTION_DIRECTORY = NAMESPACE_DIRECTORY.resolve("function");
+    private final Path functionDirectory = namespaceDirectory.resolve("function");
 
-    public static final Path TAGS_BLOCK_DIRECTORY = NAMESPACE_DIRECTORY.resolve("tags/block");
+    private final Path tagsBlockDirectory = namespaceDirectory.resolve("tags/block");
 
-    public static final Path TAGS_FUNCTION_DIRECTORY = NAMESPACE_DIRECTORY.resolve("tags/function");
+    private final Path tagsFunctionDirectory = namespaceDirectory.resolve("tags/function");
 
     private static final char ZERO = '0';
 
@@ -68,13 +70,13 @@ public class BlockBinarySearchLayerizer {
     public void layerize() {
         getComponentLogger().info("二分探索を階層構造化しています");
 
-        layerize(list, FUNCTION_DIRECTORY);
+        layerize(list, functionDirectory);
 
         getComponentLogger().info("階層構造の生成が完了しました");
 
         getComponentLogger().info("エントリポイントのコマンドを調整しています");
 
-        final Path entrypoint = FUNCTION_DIRECTORY.resolve(".mcfunction");
+        final Path entrypoint = functionDirectory.resolve(".mcfunction");
         try {
             final List<String> lines = new ArrayList<>(Files.readAllLines(entrypoint));
             lines.addFirst(String.format(
@@ -98,7 +100,7 @@ public class BlockBinarySearchLayerizer {
             throw new RuntimeException(e);
         }
 
-        final Path withTraits = FUNCTION_DIRECTORY.resolve("with_traits.mcfunction");
+        final Path withTraits = functionDirectory.resolve("with_traits.mcfunction");
         final List<String> lines = List.of(
             String.format(
                 "data modify storage %s: %s set value true",
@@ -129,7 +131,7 @@ public class BlockBinarySearchLayerizer {
 
         getComponentLogger().info("関数タグを作成します");
 
-        final Path tagJsonPath = TAGS_FUNCTION_DIRECTORY.resolve(".json");
+        final Path tagJsonPath = tagsFunctionDirectory.resolve(".json");
         final JSONFile file = new JSONFile(tagJsonPath);
         final JSONObject object = file.readAsObject();
         object.set("values", JSONArray.valueOf(List.of(NAMESPACE + ':')));
@@ -137,7 +139,7 @@ public class BlockBinarySearchLayerizer {
 
         getComponentLogger().info("関数タグ '#{}' を作成しました", NAMESPACE + ':');
 
-        final Path tagJsonPath2 = TAGS_FUNCTION_DIRECTORY.resolve("with_traits.json");
+        final Path tagJsonPath2 = tagsFunctionDirectory.resolve("with_traits.json");
         final JSONFile file2 = new JSONFile(tagJsonPath2);
         final JSONObject object2 = file2.readAsObject();
         object2.set("values", JSONArray.valueOf(List.of(NAMESPACE + ':' + "with_traits")));
@@ -180,8 +182,8 @@ public class BlockBinarySearchLayerizer {
             final List<BlockType> values0 = layerize(new ArrayList<>(a), directory.resolve(String.valueOf(ZERO)));
             final List<BlockType> values1 = layerize(new ArrayList<>(b), directory.resolve(String.valueOf(ONE)));
 
-            final Path relative = FUNCTION_DIRECTORY.relativize(directory);
-            final Path tagDirectory = TAGS_BLOCK_DIRECTORY.resolve(relative);
+            final Path relative = functionDirectory.relativize(directory);
+            final Path tagDirectory = tagsBlockDirectory.resolve(relative);
 
             try {
                 Files.createDirectories(tagDirectory);
@@ -237,7 +239,7 @@ public class BlockBinarySearchLayerizer {
         final List<String> lines = new ArrayList<>();
 
         for (final BlockType blockType : values) {
-            final String functionName = FUNCTION_DIRECTORY
+            final String functionName = functionDirectory
                 .relativize(directory.resolve(blockType.getKey().value()))
                 .toString()
                 .replaceAll("\\\\", "/");
@@ -288,7 +290,7 @@ public class BlockBinarySearchLayerizer {
             )));
         }
 
-        final String traitsFunctionName = FUNCTION_DIRECTORY
+        final String traitsFunctionName = functionDirectory
             .relativize(directory.resolve(key.value() + "_traits"))
             .toString()
             .replaceAll("\\\\", "/");
@@ -354,6 +356,18 @@ public class BlockBinarySearchLayerizer {
         blockTraits.addTrait("is_replaceable", blockData.isReplaceable());
         blockTraits.addTrait("is_randomly_ticked", blockData.isRandomlyTicked());
         blockTraits.addTrait("requires_correct_tool_for_drops", blockData.requiresCorrectToolForDrops());
+
+        final Block blockNMS = ((CraftBlockType<?>) blockType).getHandle();
+
+        if (blockNMS.getLootTable().isPresent()) {
+            blockTraits.addTrait("loot_table", blockNMS.getLootTable().get().identifier());
+        }
+        else {
+            blockTraits.addTrait("loot_table", "minecraft:empty");
+        }
+
+        blockTraits.addTrait("speed_factor", blockNMS.getSpeedFactor());
+        blockTraits.addTrait("jump_factor", blockNMS.getJumpFactor());
 
         try {
             Files.createFile(path);

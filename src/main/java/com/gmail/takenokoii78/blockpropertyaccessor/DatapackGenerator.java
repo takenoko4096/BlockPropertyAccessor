@@ -14,6 +14,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.pack.PackFormat;
 import org.bukkit.Bukkit;
+import org.jspecify.annotations.NullMarked;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,24 +25,30 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
+@NullMarked
 public class DatapackGenerator {
-    public static final Path ROOT_DIRECTORY = Path.of(BlockPropertyAccessor.BLOCK_PROPERTY_ACCESSOR + '-' + Bukkit.getMinecraftVersion());
-
-    public static final Path FINAL_OUTPUT = Path.of(ROOT_DIRECTORY + ".zip");
-
     private final BlockPropertyAccessor plugin;
 
     private boolean isProcessing;
 
+    private final Path processRootDirectory;
+
     public DatapackGenerator(BlockPropertyAccessor plugin) {
         this.plugin = plugin;
+        this.processRootDirectory = plugin.getDataPath().resolve(
+            BlockPropertyAccessor.BLOCK_PROPERTY_ACCESSOR + '-' + "Processing"
+        );
     }
 
     private ComponentLogger getComponentLogger() {
         return plugin.getComponentLogger();
     }
 
-    public boolean startGenerating() {
+    public Path getProcessRootDirectory() {
+        return processRootDirectory;
+    }
+
+    public boolean startGenerating(Path finalOutput) {
         if (isProcessing) {
             return false;
         }
@@ -50,10 +57,10 @@ public class DatapackGenerator {
 
         final Instant start = Instant.now();
 
-        if (Files.exists(FINAL_OUTPUT)) try {
+        if (Files.exists(finalOutput)) try {
             getComponentLogger().info("重複した出力先パスを消去しています");
 
-            Files.delete(FINAL_OUTPUT);
+            Files.delete(finalOutput);
 
             getComponentLogger().info("重複した出力先パスを消去しました");
         }
@@ -65,7 +72,7 @@ public class DatapackGenerator {
 
         getComponentLogger().info("リソースからデータパックの雛形をコピーしています");
 
-        resourceAccess.copy(ROOT_DIRECTORY, events -> {
+        resourceAccess.copy(processRootDirectory, events -> {
             events.register(ResourceAccess.RESOURCE_COPY_BEFORE, e -> {
                 if (e.getTo().endsWith(".gitkeep")) {
                     e.ignore();
@@ -108,14 +115,14 @@ public class DatapackGenerator {
 
         getComponentLogger().info("データパックを .zip に圧縮しています");
 
-        final ZipCompressor compressor = new ZipCompressor(plugin, ROOT_DIRECTORY);
-        compressor.compress(FINAL_OUTPUT);
+        final ZipCompressor compressor = new ZipCompressor(plugin, processRootDirectory);
+        compressor.compress(finalOutput);
 
         getComponentLogger().info(".zip に圧縮したコピーを生成しました");
 
         getComponentLogger().info("不要なコピー元ファイルを除去します");
 
-        try (final Stream<Path> stream = Files.walk(ROOT_DIRECTORY).sorted(Comparator.reverseOrder())) {
+        try (final Stream<Path> stream = Files.walk(processRootDirectory).sorted(Comparator.reverseOrder())) {
             final List<Path> paths = stream.toList();
 
             int lastProgress = 0;
@@ -145,7 +152,7 @@ public class DatapackGenerator {
 
         getComponentLogger().info(
             Component.text("データパック {} が生成されました").color(NamedTextColor.GREEN),
-            FINAL_OUTPUT
+            finalOutput
         );
 
         isProcessing = false;
