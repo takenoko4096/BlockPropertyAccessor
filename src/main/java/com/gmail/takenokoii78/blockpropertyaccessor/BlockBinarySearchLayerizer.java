@@ -360,7 +360,7 @@ public class BlockBinarySearchLayerizer {
         final Block blockNMS = ((CraftBlockType<?>) blockType).getHandle();
 
         if (blockNMS.getLootTable().isPresent()) {
-            blockTraits.addTrait("loot_table", blockNMS.getLootTable().get().identifier());
+            blockTraits.addTrait("loot_table", blockNMS.getLootTable().get().identifier().toString());
         }
         else {
             blockTraits.addTrait("loot_table", "minecraft:empty");
@@ -443,7 +443,7 @@ public class BlockBinarySearchLayerizer {
                     c += "}";
                     yield c;
                 }
-                default -> value.toString();
+                default -> stringify(value.toString());
             };
         }
 

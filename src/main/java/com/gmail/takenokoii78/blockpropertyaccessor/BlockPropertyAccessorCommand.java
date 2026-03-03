@@ -3,7 +3,6 @@ package com.gmail.takenokoii78.blockpropertyaccessor;
 import com.gmail.subnokoii78.gpcore.commands.AbstractCommand;
 import com.gmail.subnokoii78.gpcore.commands.arguments.AbstractEnumerationArgument;
 import com.gmail.subnokoii78.gpcore.commands.arguments.CommandArgumentableEnumeration;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
