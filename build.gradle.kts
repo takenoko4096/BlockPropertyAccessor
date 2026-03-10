@@ -1,12 +1,12 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import xyz.jpenilla.resourcefactory.paper.paperPluginYaml
 
 plugins {
     `java-library`
-    id("io.papermc.paperweight.userdev").version("2.0.0-beta.19")
-    id("xyz.jpenilla.resource-factory-bukkit-convention").version("1.3.0")
-    // id("xyz.jpenilla.run-paper") version("3.0.0-beta.2")
-    id("com.gradleup.shadow").version("9.1.0")
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
+    id("xyz.jpenilla.resource-factory-bukkit-convention") version "1.3.1"
+    id("xyz.jpenilla.resource-factory-paper-convention") version "1.3.1"
+    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("com.gradleup.shadow") version "9.1.0"
 }
 
 group = "com.gmail.takenokoii78"
@@ -55,6 +55,10 @@ tasks {
     withType<JavaCompile> {
         options.encoding = Charsets.UTF_8.name()
         options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:unchecked"))
+    }
+
+    runServer {
+        minecraftVersion("1.21.11")
     }
 }
 
