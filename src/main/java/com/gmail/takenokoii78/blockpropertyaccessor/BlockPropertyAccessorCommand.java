@@ -27,7 +27,7 @@ public class BlockPropertyAccessorCommand extends AbstractCommand {
                     .executes(context -> {
                         return generate(
                             context,
-                            Path.of(context.getArgument("datapack_location", String.class)).resolve(BlockPropertyAccessor.getBlockPropertyAccessor().getDatapackFileName())
+                            Path.of(context.getArgument("datapack_location", FinalOutputDirectorySuggestion.class).getValue()).resolve(BlockPropertyAccessor.getBlockPropertyAccessor().getDatapackFileName())
                         );
                     })
             )
